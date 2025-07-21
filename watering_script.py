@@ -32,12 +32,11 @@ def log_watering_event(duration):
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Automated plant watering system with weather and rain check for Lund, Sweden. "
-                    "By default, waters every hour for 2 seconds unless it has rained in the last 24h."
+                    "Waters at specified military times (default: 06:00 and 18:00) for a set duration. Skips watering if it has rained in the last 24h."
     )
-    parser.add_argument('--duration', type=int, default=2, help='Watering duration in seconds (default: 2)')
-    parser.add_argument('--frequency', type=int, default=3600, help='Watering frequency in seconds (default: 3600, i.e., every hour)')
+    parser.add_argument('--duration', type=int, default=20, help='Watering duration in seconds (default: 20)')
     parser.add_argument('--dry-run', action='store_true', help='Run without activating the relay (for testing)')
-    parser.add_argument('--times', type=str, default=None, help='Comma-separated list of military times (e.g., 06:00,18:30) to water instead of using frequency')
+    parser.add_argument('--times', type=str, default='06:00,18:00', help='Comma-separated list of military times (e.g., 06:00,18:00) to water. Default: 06:00,18:00')
     return parser.parse_args()
 
 
@@ -108,7 +107,7 @@ if __name__ == "__main__":
         format='[%(asctime)s] %(levelname)s: %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-    logging.info("Starting watering system with settings: duration=%ds, frequency=%ds, dry_run=%s, times=%s", args.duration, args.frequency, args.dry_run, args.times)
+    logging.info("Starting watering system with settings: duration=%ds, dry_run=%s, times=%s", args.duration, args.dry_run, args.times)
     try:
         setup()
         times_list = []
