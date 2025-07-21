@@ -59,7 +59,7 @@ def parse_times(times_str):
 def setup():
     GPIO.setmode(GPIO.BCM)        # Use BCM pin numbering
     GPIO.setup(RELAY_PIN, GPIO.OUT)
-    GPIO.output(RELAY_PIN, GPIO.HIGH)  # Ensure relay is off initially (HIGH = off for active-low)
+    GPIO.output(RELAY_PIN, GPIO.LOW)  # Ensure relay is off initially (LOW = off for active-high)
 
 def flip_switch(duration, dry_run=False):
     if dry_run:
@@ -68,10 +68,10 @@ def flip_switch(duration, dry_run=False):
         logging.info("[DRY RUN] Would turn switch OFF.")
         return
     logging.info("Turning switch ON")
-    GPIO.output(RELAY_PIN, GPIO.LOW)   # Turn relay ON
+    GPIO.output(RELAY_PIN, GPIO.HIGH)   # Turn relay ON (HIGH = ON)
     time.sleep(duration)
     logging.info("Turning switch OFF")
-    GPIO.output(RELAY_PIN, GPIO.HIGH)  # Turn relay OFF
+    GPIO.output(RELAY_PIN, GPIO.LOW)  # Turn relay OFF (LOW = OFF)
     log_watering_event(duration)
 
 def cleanup():
