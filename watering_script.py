@@ -83,7 +83,7 @@ def has_rained_last_24h(api_key=OPENWEATHER_API_KEY, coords=LUND_COORDS):
     If the API call fails, returns None and logs a warning.
     """
     url = (
-        f"https://api.openweathermap.org/data/2.5/onecall?lat={coords['lat']}&lon={coords['lon']}"
+        f"https://api.openweathermap.org/data/2.5/weather?lat={coords['lat']}&lon={coords['lon']}"
         f"&exclude=current,minutely,daily,alerts&appid={api_key}&units=metric"
     )
     try:
