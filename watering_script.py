@@ -11,7 +11,7 @@ from datetime import datetime
 RELAY_PIN = 27       # GPIO pin connected to the relay
 
 # --- Weather Integration ---
-OPENWEATHER_API_KEY = "f2c3205a623a624346a1ecd88bc64bd0"
+OPENWEATHER_API_KEY = "cea65b4e8b026e25b335792c8d9db865"
 LUND_COORDS = {"lat": 55.7047, "lon": 13.1910}
 
 # --- Watering event logging ---
@@ -80,7 +80,7 @@ def cleanup():
 def has_rained_last_24h(api_key=OPENWEATHER_API_KEY, coords=LUND_COORDS):
     """
     Returns True if it has rained in the last 24 hours in Lund, Sweden, using OpenWeatherMap One Call API.
-    If the API call fails, returns False (proceed to water as if it did not rain) and logs a warning.
+    If the API call fails, returns None and logs a warning.
     """
     url = (
         f"https://api.openweathermap.org/data/2.5/onecall?lat={coords['lat']}&lon={coords['lon']}"
@@ -94,11 +94,13 @@ def has_rained_last_24h(api_key=OPENWEATHER_API_KEY, coords=LUND_COORDS):
         for hour in hourly[:24]:
             rain = hour.get("rain", {})
             if rain.get("1h", 0) > 0:
+                logging.info("[Weather] Rain detected in the last 24 hours (%.2f mm in one hour).", rain.get("1h", 0))
                 return True
+        logging.info("[Weather] No rain detected in the last 24 hours.")
         return False
     except Exception as e:
-        logging.warning(f"[Weather] Error fetching weather data: {e}. Proceeding to water as if it did not rain.")
-        return False
+        logging.warning(f"[Weather] API error: {e}. Proceeding to water as if it did not rain.")
+        return None
 
 if __name__ == "__main__":
     args = parse_args()
@@ -129,15 +131,18 @@ if __name__ == "__main__":
                         rain_checked = has_rained_last_24h()
                     except Exception as e:
                         logging.warning(f"[Weather] Unexpected error during rain check: {e}. Proceeding to water as if it did not rain.")
-                        rain_checked = False
-                    if rain_checked:
+                        rain_checked = None
+                    if rain_checked is True:
                         logging.info("[Weather] It has rained in the last 24 hours in Lund. Skipping watering.")
-                    elif args.dry_run:
-                        logging.info("[DRY RUN] Skipping actual watering. Would have watered for %d seconds.", args.duration)
-                        flip_switch(args.duration, args.dry_run)
-                    else:
-                        if rain_checked is False:
-                            logging.info("[Weather] Proceeding to water (either no rain or weather check failed).")
+                    elif rain_checked is False:
+                        if args.dry_run:
+                            logging.info("[DRY RUN] Skipping actual watering. Would have watered for %d seconds.", args.duration)
+                            flip_switch(args.duration, args.dry_run)
+                        else:
+                            logging.info("[Weather] Proceeding to water (no rain detected in last 24h).")
+                            flip_switch(args.duration, args.dry_run)
+                    elif rain_checked is None:
+                        logging.warning("[Weather] Weather API failed. Proceeding to water as if it did not rain.")
                         flip_switch(args.duration, args.dry_run)
                     last_watered.add(current_tuple)
                 # Reset last_watered at midnight
@@ -151,16 +156,16 @@ if __name__ == "__main__":
                     rain_checked = has_rained_last_24h()
                 except Exception as e:
                     logging.warning(f"[Weather] Unexpected error during rain check: {e}. Proceeding to water as if it did not rain.")
-                    rain_checked = False
-                if rain_checked:
+                    rain_checked = None
+                if rain_checked is True:
                     logging.info("[Weather] It has rained in the last 24 hours in Lund. Skipping watering.")
-                elif args.dry_run:
-                    logging.info("[DRY RUN] Skipping actual watering. Would have watered for %d seconds.", args.duration)
-                    flip_switch(args.duration, args.dry_run)
-                else:
-                    if rain_checked is False:
-                        logging.info("[Weather] Proceeding to water (either no rain or weather check failed).")
-                    flip_switch(args.duration, args.dry_run)
+                elif rain_checked is False:
+                    if args.dry_run:
+                        logging.info("[DRY RUN] Skipping actual watering. Would have watered for %d seconds.", args.duration)
+                        flip_switch(args.duration, args.dry_run)
+                    else:
+                        logging.info("[Weather] Proceeding to water (no rain detected in last 24h).")
+                        flip_switch(args.duration, args.dry_run)
                 logging.info(f"Waiting {args.frequency} seconds until next watering...")
                 time.sleep(args.frequency)
     except KeyboardInterrupt:
